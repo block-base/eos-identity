@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <title>SANDBOX-TS</title>
+
+    <link rel="icon" href="img/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon" />
+
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+
+    <!-- scatterjs -->
+    <script src="https://cdn.scattercdn.com/file/scatter-cdn/js/latest/scatterjs-core.min.js"></script>
+    <script src="https://cdn.scattercdn.com/file/scatter-cdn/js/latest/scatterjs-plugin-eosjs.min.js"></script>
+    <!-- eosjs -->
+    <script src="https://cdn.jsdelivr.net/npm/eosjs@16.0.9/lib/eos.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eosjs-ecc@4.0.4/lib/eosjs-ecc.min.js"></script>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+
+        var userAccount;
+        var hcm = "EOS68HS29P7BcsMEs9Ko7bchCweRG4UgNgz3NAgnLeciH6nGCcZEg";
+
+        const network = {
+            blockchain: 'eos',
+            host: 'kylin-testnet.jeda.one',
+            port: 8888,
+            protocol: 'http',
+            chainId: '5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191'
+        };
+
+        loadAccount();
+
+        function loadAccount() {
+
+            ScatterJS.plugins(new ScatterEOS());
+
+            ScatterJS.scatter.connect('demo-app').then(connected => {
+                if (!connected) {
+                    // User does not have Scatter installed/unlocked.
+                    console.log("not connect");
+                }
+                if (ScatterJS.scatter.identity != null) {
+
+                }
+
+                toggleScatter();
+
+            });
+        }
+
+        function toggleScatter() {
+
+            const requiredFields = { accounts: [network] };
+
+            ScatterJS.scatter.getIdentity(requiredFields).then(identity => {
+                console.log(identity)
+
+            }).catch(error => {
+                console.error(error);
+
+            });
+
+        }
+
+        function addclaim(sig, data) {
+            if (ScatterJS.scatter.identity == null) {
+                alert("Attach Identity first");
+                return;
+            }
+
+            userAccount = ScatterJS.scatter.identity.accounts[0].name;
+
+            const eos = ScatterJS.scatter.eos(network, Eos, { expireInSeconds: 60 });
+            const account = ScatterJS.scatter.identity.accounts.find(x => x.blockchain === 'eos');
+
+            var options = {
+                authorization: userAccount + '@' + 'active',
+                broadcast: true,
+                sign: true
+            }
+
+            eos.contract('tatamitest15').then(contract => {
+                contract.addclaim(userAccount, sig, data, options).then(res => {
+                    console.log("success");
+                }).catch(err => {
+                    console.log(err);
+                });
+            });
+
+        }
+
+        function verify() {
+
+            var student = ScatterJS.scatter.identity.accounts[0].name;
+
+            axios.get('https://eos-signer.glitch.me/hash?student=' + student).then(function (response) {
+                var data = response.data.data;
+
+
+                var options = {
+                    httpEndpoint: 'https://api.kylin.alohaeos.com',
+                }
+
+                userAccount = ScatterJS.scatter.identity.accounts[0].name;
+                eos = Eos(options) // // 127.0.0.1:8888
+
+                eos.getTableRows({
+                    scope: "tatamitest15",
+                    code: "tatamitest15",
+                    table: "students",
+                    json: true,
+                    limit: 100,
+                }).then(async result => {
+                    var sig = "";
+                    for (i = 0; i < result.rows.length; i++) {
+
+                        if (result.rows[i].student_name == userAccount) {
+
+                            for (j = 0; j < result.rows[i].raw_type.length; j++) {
+
+                                if (result.rows[i].raw_type[j] == data) {
+                                    sig = result.rows[i].signature[j]
+                                    //console.log(sig)
+                                };
+                            };
+                        };
+                    }
+
+                    var student = $("#student").val();
+                    console.log(student)
+
+                    axios.get('https://eos-signer.glitch.me/verify?student=' + student + "&sig=" + sig).then(response => (
+
+                        console.log(response.data.result)
+
+                    ))
+
+
+                }).catch(err =>
+                    console.log(err)
+                );
+
+
+            })
+        }
+
+        function sign() {
+
+            var student = ScatterJS.scatter.identity.accounts[0].name;
+
+            axios.get('https://eos-signer.glitch.me/sign?student=' + student).then(response => (
+
+                addclaim(response.data.sig, response.data.data)
+
+            ))
+
+        }
+
+
+    </script>
+
+
+</head>
+
+
+<body>
+    Hochimin University Degree
+    <hr>
+    <br>
+    <input type="button" onclick="sign()" value="addClaim">
+    <br>
+    <hr>
+    <input type="text" id="student">
+    <input type="button" onclick="verify()" value="Verify">
+
+
+
+</body>
+
+</html>
