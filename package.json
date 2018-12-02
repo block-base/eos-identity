@@ -1,0 +1,31 @@
+{
+  "name": "tatami",
+  "version": "1.0.0",
+  "description": "source .tatami.init node main.js -> to start API server cd src/react && npm run start -> react dev mode",
+  "main": "main.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "eosjs": "^16.0.9",
+    "eosjs-ecc": "^4.0.4",
+    "express": "^4.16.4",
+    "nodemon": "^1.18.7",
+    "text-encoding": "^0.7.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sirhung1993/tatami.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sirhung1993/tatami/issues"
+  },
+  "homepage": "https://github.com/sirhung1993/tatami#readme"
+}

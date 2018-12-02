@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <title>SANDBOX-TS</title>
+
+    <link rel="icon" href="img/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon" />
+
+    <link rel="stylesheet" href="./semantic/semantic.min.css" />
+    <link rel="stylesheet" href="https://cdn.rawgit.com/balzss/luxbar/ae5835e2/build/luxbar.min.css">     
+
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+
+    <!-- scatterjs -->
+    <script src="https://cdn.scattercdn.com/file/scatter-cdn/js/latest/scatterjs-core.min.js"></script>
+    <script src="https://cdn.scattercdn.com/file/scatter-cdn/js/latest/scatterjs-plugin-eosjs.min.js"></script>
+    <!-- eosjs -->
+    <script src="https://cdn.jsdelivr.net/npm/eosjs@16.0.9/lib/eos.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eosjs-ecc@4.0.4/lib/eosjs-ecc.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eosjs-ecc@4.0.4/lib/eosjs-ecc.min.js"></script>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="./semantic/semantic.min.js"></script>
+
+    <script>
+        var userAccount;
+        var hcm = "EOS68HS29P7BcsMEs9Ko7bchCweRG4UgNgz3NAgnLeciH6nGCcZEg";
+        const network = {
+            blockchain: 'eos',
+            host: 'kylin-testnet.jeda.one',
+            port: 8888,
+            protocol: 'http',
+            chainId: '5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191'
+        };
+        loadAccount();
+        function loadAccount() {
+            ScatterJS.plugins(new ScatterEOS());
+            ScatterJS.scatter.connect('demo-app').then(connected => {
+                if (!connected) {
+                    // User does not have Scatter installed/unlocked.
+                    console.log("not connect");
+                }
+                if (ScatterJS.scatter.identity != null) {
+                }
+                toggleScatter();
+            });
+        }
+        function toggleScatter() {
+            const requiredFields = { accounts: [network] };
+            ScatterJS.scatter.getIdentity(requiredFields).then(identity => {
+                console.log(identity)
+            }).catch(error => {
+                console.error(error);
+            });
+        }
+        function addclaim(sig, data) {
+            if (ScatterJS.scatter.identity == null) {
+                alert("Attach Identity first");
+                return;
+            }
+            userAccount = ScatterJS.scatter.identity.accounts[0].name;
+            const eos = ScatterJS.scatter.eos(network, Eos, { expireInSeconds: 60 });
+            const account = ScatterJS.scatter.identity.accounts.find(x => x.blockchain === 'eos');
+            var options = {
+                authorization: userAccount + '@' + 'active',
+                broadcast: true,
+                sign: true
+            }
+            eos.contract('tatamiisgood').then(contract => {
+                contract.addclaim(userAccount, sig, data, options).then(res => {
+                    console.log("success");
+                }).catch(err => {
+                    console.log(err);
+                });
+            });
+        }
+        function verify() {
+            var student = ScatterJS.scatter.identity.accounts[0].name;
+            axios.get('hash?student=' + student).then(function (response) {
+                var data = response.data.data;
+                var options = {
+                    httpEndpoint: 'https://api.kylin.alohaeos.com',
+                }
+                userAccount = ScatterJS.scatter.identity.accounts[0].name;
+                eos = Eos(options) // // 127.0.0.1:8888
+
+                eos.getTableRows({
+                    scope: "tatamiisgood",
+                    code: "tatamiisgood",
+                    table: "students",
+                    json: true,
+                    limit: 100,
+
+                }).then(async result => {
+
+                    var sig = "";
+                    for (i = 0; i < result.rows.length; i++) {
+                        if (result.rows[i].student_name == userAccount) {
+                            for (j = 0; j < result.rows[i].raw_type.length; j++) {
+                                if (result.rows[i].raw_type[j] == data) {
+                                    sig = result.rows[i].signature[j]
+                                    //console.log(sig)
+                                };
+                            };
+                        };
+                    }
+                    var student = $("#student").val();
+
+                    console.log(student)
+                    axios.get('verify?student=' + student + "&sig=" + sig).then(response => (
+                        console.log(response.data.result)
+                    ))
+                }).catch(err =>
+                    console.log(err)
+                );
+            })
+        }
+        function sign() {
+            var student = ScatterJS.scatter.identity.accounts[0].name;
+            axios.get('sign?student=' + student).then(response => (
+                addclaim(response.data.sig, response.data.data)
+            ))
+        }
+    </script>
+
+    <style>
+
+        .container {
+            background-color: #FFFFFF;
+            margin-top: 80px;
+        }
+
+        img {
+            width:30%;
+        }
+
+</style>
+
+</head>
+
+<body>
+    <header id="luxbar" class="luxbar-static">
+        <input type="checkbox" class="luxbar-checkbox" id="luxbar-checkbox" />
+        <div class="luxbar-menu luxbar-menu-right luxbar-menu-dark">
+            <ul class="luxbar-navigation">
+                <li class="luxbar-header">
+                    <a href="#" class="luxbar-brand">TATAMI CERTIFICATION</a>
+                    <label class="luxbar-hamburger luxbar-hamburger-doublespin" id="luxbar-hamburger" for="luxbar-checkbox">
+                        <span></span> </label>
+                </li>
+                <li class="luxbar-item"><a href="index.html">Claim</a></li>
+                <li class="luxbar-item"><a href="verify.html">Verify</a></li>
+                <li class="luxbar-item"><a href="prove.html">Prove</a></li>
+                <li class="luxbar-item"><a href="https://kylin.bloks.io/account/tatamiisgood">Contract</a></li>
+            </ul>
+        </div>
+    </header>
+    <div class="ui container">
+        <h1 class="ui align centered header">
+            TATAMI CERTIFICATION
+        </h1>
+        <h3 class="ui align centered header">
+            International and United Degree & Certification Management System on Blockchain.
+        </h3>
+
+        <form class="ui form container text">
+            <div class="field">
+                <input type="text" name="last-name" placeholder="Univercity">
+            </div>
+
+            <div class="field">
+                <input type="text" id="student" name="last-name" placeholder="StudentID">
+            </div>
+
+            <button class="ui button" onclick="alert('This is under development, this function is to prove identity using private key.')" type="button">Prove</button>
+        </form>
+        <img class="ui centered image" src="wookong.png">
+
+    </div>
+
+</body>
+
+</html>
